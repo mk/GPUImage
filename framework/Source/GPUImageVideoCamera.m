@@ -13,6 +13,7 @@
     NSDate *startingCaptureTime;
     
     dispatch_queue_t audioProcessingQueue;
+  CIDetector *_faceDetector;
 }
 
 @end
@@ -44,7 +45,8 @@
 		return nil;
     }
     
-	audioProcessingQueue = dispatch_queue_create("com.sunsetlakesoftware.GPUImage.processingQueue", NULL);
+  _faceDetector = [CIDetector detectorOfType:CIDetectorTypeFace context:nil options:@{CIDetectorAccuracy: CIDetectorAccuracyLow}];
+	audioProcessingQueue = dispatch_queue_create("com.sunsetlakesoftware.GPUImage.processingQueue", DISPATCH_QUEUE_SERIAL);
     
     _runBenchmark = NO;
     capturePaused = NO;
@@ -257,6 +259,7 @@
     {
         return;
     }
+  
     
     CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
     CVImageBufferRef cameraFrame = CMSampleBufferGetImageBuffer(sampleBuffer);
@@ -265,6 +268,15 @@
     
 	CMTime currentTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
     
+  
+  
+  CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+  CIImage *image = [CIImage imageWithCVPixelBuffer:imageBuffer];
+  NSArray *features = [_faceDetector featuresInImage:image options:@{CIDetectorImageOrientation: @(4)}]; //should be 7
+  if(_featuresDetected) {
+    _featuresDetected(features);
+  }
+  
     if ([GPUImageOpenGLESContext supportsFastTextureUpload])
     {
         CVPixelBufferLockBaseAddress(cameraFrame, 0);
@@ -367,12 +379,13 @@
                 totalFrameTimeDuringCapture += currentFrameTime;
             }
         }
-    }  
+    }
+
 }
 
 - (void)processAudioSampleBuffer:(CMSampleBufferRef)sampleBuffer;
 {
-    [self.audioEncodingTarget processAudioBuffer:sampleBuffer]; 
+    [self.audioEncodingTarget processAudioBuffer:sampleBuffer];
 }
 
 #pragma mark -
@@ -481,7 +494,7 @@
             case UIInterfaceOrientationPortrait:outputRotation = kGPUImageRotateRight; break;
             case UIInterfaceOrientationPortraitUpsideDown:outputRotation = kGPUImageRotateLeft; break;
             case UIInterfaceOrientationLandscapeLeft:outputRotation = kGPUImageRotate180; break;
-            case UIInterfaceOrientationLandscapeRight:outputRotation = kGPUImageNoRotation; break;
+            case UIInterfaceOrientationLandscapeRight:outputRotation = kGPUImageRotate180; break;
         }
     }
     
@@ -490,6 +503,7 @@
         NSInteger indexOfObject = [targets indexOfObject:currentTarget];
         [currentTarget setInputRotation:outputRotation atIndex:[[targetTextureIndices objectAtIndex:indexOfObject] integerValue]];
     }
+  
 }
 
 @end

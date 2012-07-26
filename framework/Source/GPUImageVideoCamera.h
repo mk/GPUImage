@@ -6,7 +6,9 @@
 
 /**
  A GPUImageOutput that provides frames from either camera
-*/
+ */
+typedef void (^ArrayBlock)(NSArray*);
+
 @interface GPUImageVideoCamera : GPUImageOutput <AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate>
 {
     CVOpenGLESTextureCacheRef coreVideoTextureCache;    
@@ -25,6 +27,7 @@
 
 /// The AVCaptureSession used to capture from the camera
 @property(readonly, retain) AVCaptureSession *captureSession;
+@property(nonatomic, copy) ArrayBlock featuresDetected;
 
 /// This enables the benchmarking mode, which logs out instantaneous and average frame times to the console
 @property(readwrite, nonatomic) BOOL runBenchmark;
